@@ -1,0 +1,5 @@
+server:
+  port: 8080
+  timeout: 45
+features:
+  new_checkout: false

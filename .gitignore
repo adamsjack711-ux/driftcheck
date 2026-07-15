@@ -1,0 +1,7 @@
+# built binaries
+/driftcheck
+npm/dist/
+npm/node_modules/
+*.tgz
+
+.DS_Store
