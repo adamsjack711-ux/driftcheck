@@ -30,10 +30,10 @@ function launch(name) {
       `${name}: no prebuilt binary for ${process.platform}-${process.arch}.`
     );
     console.error(
-      'driftcheck currently ships macOS arm64 binaries. On other platforms,'
+      'driftcheck ships binaries for macOS and Linux (arm64 + x64). On other'
     );
     console.error(
-      `build from source with go and point ${name.toUpperCase()}_BIN at the binary.`
+      `platforms, build from source with go and point ${name.toUpperCase()}_BIN at the binary.`
     );
     process.exit(2);
   }

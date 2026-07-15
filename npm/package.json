@@ -1,6 +1,6 @@
 {
   "name": "driftcheck-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Semantic diffing of config files (.env, JSON, YAML, TOML) across environments — typed drift detection with a CI exit-code gate.",
   "bin": {
     "driftcheck": "bin/driftcheck.js"
@@ -13,10 +13,12 @@
     "LICENSE"
   ],
   "os": [
-    "darwin"
+    "darwin",
+    "linux"
   ],
   "cpu": [
-    "arm64"
+    "arm64",
+    "x64"
   ],
   "engines": {
     "node": ">=18"

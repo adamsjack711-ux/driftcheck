@@ -24,12 +24,13 @@ type FileError struct {
 // Report is the full outcome of a run: one pair for `compare`, many for
 // `compare-dir`, plus files that exist on only one side of a dir comparison.
 type Report struct {
-	Pairs    []FilePair
-	OnlyInA  []string // relative paths present only under dirA
-	OnlyInB  []string
-	Errors   []FileError
-	DirA     string // set for compare-dir
-	DirB     string
+	Pairs     []FilePair
+	OnlyInA   []string // relative paths present only under dirA
+	OnlyInB   []string
+	Errors    []FileError
+	DirA      string // set for compare-dir
+	DirB      string
+	RulesFile string // path of the rules file that applied, "" if defaults
 }
 
 // TotalDrift sums unignored drift across all pairs, plus unmatched files in a
@@ -40,6 +41,38 @@ func (r *Report) TotalDrift() int {
 		n += p.Result.Counts().Drift()
 	}
 	return n
+}
+
+// TotalWarnings counts non-fatal parse warnings across all pairs. Under
+// --strict these fail the run: a file that is mostly skipped lines can
+// otherwise compare "clean" while being garbage.
+func (r *Report) TotalWarnings() int {
+	n := 0
+	for _, p := range r.Pairs {
+		n += len(p.WarningsA) + len(p.WarningsB)
+	}
+	return n
+}
+
+// CategoryTotals sums drift by category across the whole report, for
+// --fail-on filtering.
+type CategoryTotals struct {
+	Missing int // keys missing on either side
+	Value   int
+	Type    int
+	Files   int // files present on only one side of a dir comparison
+}
+
+func (r *Report) Categories() CategoryTotals {
+	var t CategoryTotals
+	t.Files = len(r.OnlyInA) + len(r.OnlyInB)
+	for _, p := range r.Pairs {
+		c := p.Result.Counts()
+		t.Missing += c.MissingInA + c.MissingInB
+		t.Value += c.ValueDrift
+		t.Type += c.TypeDrift
+	}
+	return t
 }
 
 // Options controls rendering.

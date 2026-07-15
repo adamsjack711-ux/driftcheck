@@ -17,6 +17,11 @@ const (
 	KindInt
 	KindFloat
 	KindString
+	// KindEmptyMap / KindEmptyList are leaves for {} and []. Without them an
+	// empty container would flatten to nothing and be indistinguishable from
+	// the key not existing at all.
+	KindEmptyMap
+	KindEmptyList
 )
 
 func (k Kind) String() string {
@@ -31,6 +36,10 @@ func (k Kind) String() string {
 		return "float"
 	case KindString:
 		return "string"
+	case KindEmptyMap:
+		return "empty map"
+	case KindEmptyList:
+		return "empty list"
 	default:
 		return "unknown"
 	}
@@ -51,6 +60,8 @@ func BoolVal(b bool) Value     { return Value{Kind: KindBool, Bool: b} }
 func IntVal(i int64) Value     { return Value{Kind: KindInt, Int: i} }
 func FloatVal(f float64) Value { return Value{Kind: KindFloat, Float: f} }
 func StringVal(s string) Value { return Value{Kind: KindString, Str: s} }
+func EmptyMap() Value          { return Value{Kind: KindEmptyMap} }
+func EmptyList() Value         { return Value{Kind: KindEmptyList} }
 
 // Canonical returns the value rendered as a plain string, with no type
 // decoration. Two values whose Canonical forms match but whose Kinds differ
@@ -67,6 +78,10 @@ func (v Value) Canonical() string {
 		return strconv.FormatFloat(v.Float, 'g', -1, 64)
 	case KindString:
 		return v.Str
+	case KindEmptyMap:
+		return "{}"
+	case KindEmptyList:
+		return "[]"
 	default:
 		return ""
 	}
@@ -87,7 +102,7 @@ func (v Value) Equal(o Value) bool {
 		return false
 	}
 	switch v.Kind {
-	case KindNull:
+	case KindNull, KindEmptyMap, KindEmptyList:
 		return true
 	case KindBool:
 		return v.Bool == o.Bool

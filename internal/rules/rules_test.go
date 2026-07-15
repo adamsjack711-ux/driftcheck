@@ -52,13 +52,13 @@ func TestDefaultSecretPatterns(t *testing.T) {
 		"private_key", "ACCESS_KEY",
 	}
 	for _, s := range secret {
-		if !r.IsSecret(s) {
+		if !r.IsSecretName(s) {
 			t.Errorf("IsSecret(%q) = false, want true", s)
 		}
 	}
 	notSecret := []string{"MONKEY", "TIMEOUT", "TOKENIZER", "AUTHOR", "keyboard"}
 	for _, s := range notSecret {
-		if r.IsSecret(s) {
+		if r.IsSecretName(s) {
 			t.Errorf("IsSecret(%q) = true, want false", s)
 		}
 	}
@@ -69,10 +69,10 @@ func TestExtraSecretPatternsAndOptOut(t *testing.T) {
 secret_patterns:
   - internal_cred
 `)
-	if !r.IsSecret("MY_INTERNAL_CRED") {
+	if !r.IsSecretName("MY_INTERNAL_CRED") {
 		t.Error("extra pattern should match case-insensitively")
 	}
-	if !r.IsSecret("API_KEY") {
+	if !r.IsSecretName("API_KEY") {
 		t.Error("built-ins should still apply alongside extras")
 	}
 
@@ -81,10 +81,10 @@ no_default_secrets: true
 secret_patterns:
   - internal_cred
 `)
-	if r.IsSecret("API_KEY") {
+	if r.IsSecretName("API_KEY") {
 		t.Error("no_default_secrets should disable built-ins")
 	}
-	if !r.IsSecret("internal_cred_x") {
+	if !r.IsSecretName("internal_cred_x") {
 		t.Error("extra patterns should survive no_default_secrets")
 	}
 }
@@ -94,7 +94,7 @@ func TestMissingDefaultConfigFallsBack(t *testing.T) {
 	if err != nil {
 		t.Fatalf("implicit missing config should not error: %v", err)
 	}
-	if !r.IsSecret("API_KEY") || r.IsIgnored("anything") {
+	if !r.IsSecretName("API_KEY") || r.IsIgnored("anything") {
 		t.Error("fallback should be defaults: built-in secrets, no ignores")
 	}
 }

@@ -108,7 +108,7 @@ func Compare(a, b model.Tree, cfg *rules.Rules) Result {
 		vb, inB := b[p]
 		e := Entry{
 			Path:    p,
-			Secret:  cfg.IsSecret(model.LastSegment(p)),
+			Secret:  isSecret(cfg, p, inA, va, inB, vb),
 			Ignored: cfg.IsIgnored(p),
 		}
 		switch {
@@ -127,7 +127,30 @@ func Compare(a, b model.Tree, cfg *rules.Rules) Result {
 				e.Type = ValueDrift
 			}
 		}
+		// ignore_values forgives changed values, never missing keys —
+		// a silently absent key is the bug class this tool exists for.
+		if (e.Type == ValueDrift || e.Type == TypeDrift) && cfg.IsValueIgnored(p) {
+			e.Ignored = true
+		}
 		res.Entries = append(res.Entries, e)
 	}
 	return res
+}
+
+// isSecret flags an entry when any name-like piece of the path matches a
+// secret pattern (including keyed-list identities, so env[name=DB_PASSWORD]
+// is caught) or when either side's value itself looks like a credential.
+func isSecret(cfg *rules.Rules, path string, inA bool, va model.Value, inB bool, vb model.Value) bool {
+	for _, cand := range model.SecretCandidates(path) {
+		if cfg.IsSecretName(cand) {
+			return true
+		}
+	}
+	if inA && va.Kind == model.KindString && cfg.IsSecretValue(va.Str) {
+		return true
+	}
+	if inB && vb.Kind == model.KindString && cfg.IsSecretValue(vb.Str) {
+		return true
+	}
+	return false
 }

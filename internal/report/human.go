@@ -35,6 +35,14 @@ func (h humanPrinter) c(code, s string) string {
 func RenderHuman(w io.Writer, r *Report, opts Options) {
 	h := humanPrinter{w: w, opts: opts}
 
+	if opts.Verbose {
+		if r.RulesFile != "" {
+			fmt.Fprintf(w, "%s\n\n", h.c(ansiDim, "rules: "+r.RulesFile))
+		} else {
+			fmt.Fprintf(w, "%s\n\n", h.c(ansiDim, "rules: (none found — built-in defaults)"))
+		}
+	}
+
 	for _, fe := range r.Errors {
 		fmt.Fprintf(w, "%s %s: %s\n", h.c(ansiRed, "ERROR"), fe.Name, fe.Err)
 	}

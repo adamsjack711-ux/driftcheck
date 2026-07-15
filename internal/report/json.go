@@ -8,21 +8,28 @@ import (
 	"github.com/adamsjack711-ux/driftcheck/internal/model"
 )
 
+// SchemaVersion increments on any breaking change to the --json output
+// shape, so CI consumers can assert compatibility.
+const SchemaVersion = 1
+
 // jsonReport is the stable machine-readable schema for --json. CI consumers
 // key off .summary.drift and .summary.errors; everything else is detail.
 type jsonReport struct {
-	Pairs    []jsonPair  `json:"pairs"`
-	OnlyInA  []string    `json:"files_only_in_a,omitempty"`
-	OnlyInB  []string    `json:"files_only_in_b,omitempty"`
-	Errors   []FileError `json:"errors"`
-	Summary  jsonSummary `json:"summary"`
+	SchemaVersion int         `json:"schema_version"`
+	RulesFile     string      `json:"rules_file,omitempty"`
+	Pairs         []jsonPair  `json:"pairs"`
+	OnlyInA       []string    `json:"files_only_in_a,omitempty"`
+	OnlyInB       []string    `json:"files_only_in_b,omitempty"`
+	Errors        []FileError `json:"errors"`
+	Summary       jsonSummary `json:"summary"`
 }
 
 type jsonSummary struct {
-	Drift   int `json:"drift"`   // unignored drift count -> exit 1 if > 0
-	Ignored int `json:"ignored"` // drift suppressed by ignore rules
-	Errors  int `json:"errors"`  // load/parse failures -> exit 2 if > 0
-	Pairs   int `json:"pairs"`
+	Drift    int `json:"drift"`    // unignored drift count -> exit 1 if > 0
+	Ignored  int `json:"ignored"`  // drift suppressed by ignore rules
+	Errors   int `json:"errors"`   // load/parse failures -> exit 2 if > 0
+	Warnings int `json:"warnings"` // skipped/malformed lines -> exit 2 under --strict
+	Pairs    int `json:"pairs"`
 }
 
 type jsonPair struct {
@@ -76,6 +83,10 @@ func toJSONValue(v *model.Value, secret bool, opts Options) *jsonValue {
 		jv.Value = v.Float
 	case model.KindString:
 		jv.Value = v.Str
+	case model.KindEmptyMap:
+		jv.Value = map[string]any{}
+	case model.KindEmptyList:
+		jv.Value = []any{}
 	}
 	return jv
 }
@@ -84,10 +95,12 @@ func toJSONValue(v *model.Value, secret bool, opts Options) *jsonValue {
 // included only with Verbose, mirroring the human report.
 func RenderJSON(w io.Writer, r *Report, opts Options) error {
 	out := jsonReport{
-		Pairs:   []jsonPair{},
-		OnlyInA: r.OnlyInA,
-		OnlyInB: r.OnlyInB,
-		Errors:  r.Errors,
+		SchemaVersion: SchemaVersion,
+		RulesFile:     r.RulesFile,
+		Pairs:         []jsonPair{},
+		OnlyInA:       r.OnlyInA,
+		OnlyInB:       r.OnlyInB,
+		Errors:        r.Errors,
 	}
 	if out.Errors == nil {
 		out.Errors = []FileError{}
@@ -129,9 +142,10 @@ func RenderJSON(w io.Writer, r *Report, opts Options) error {
 	}
 
 	out.Summary = jsonSummary{
-		Drift:   r.TotalDrift(),
-		Errors:  len(r.Errors),
-		Pairs:   len(r.Pairs),
+		Drift:    r.TotalDrift(),
+		Errors:   len(r.Errors),
+		Warnings: r.TotalWarnings(),
+		Pairs:    len(r.Pairs),
 	}
 	for _, pair := range r.Pairs {
 		out.Summary.Ignored += pair.Result.Counts().Ignored

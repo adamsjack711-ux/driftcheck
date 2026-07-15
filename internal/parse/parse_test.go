@@ -187,8 +187,9 @@ name = "w2"
 		{"server.port", model.KindInt, "8080"},
 		{"server.ratio", model.KindFloat, "0.25"},
 		{"server.enabled", model.KindBool, "true"},
-		{"workers[0].name", model.KindString, "w1"},
-		{"workers[1].name", model.KindString, "w2"},
+		// arrays of tables with a unique "name" field key by identity
+		{"workers[name=w1].name", model.KindString, "w1"},
+		{"workers[name=w2].name", model.KindString, "w2"},
 	}
 	for _, c := range cases {
 		v, ok := tree[c.path]

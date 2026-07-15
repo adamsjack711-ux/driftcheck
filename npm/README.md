@@ -30,9 +30,9 @@ npm install -g driftcheck-cli
 ```
 
 This installs the `driftcheck` command as a prebuilt native binary (the CLI
-is written in Go). Currently
-macOS arm64 only; on other platforms build from source and point
-`DRIFTCHECK_BIN` at the binary.
+is written in Go). Ships macOS and Linux, arm64 and x64 — including the
+GitHub Actions / GitLab CI runners this tool is designed to gate. Elsewhere,
+build from source and point `DRIFTCHECK_BIN` at the binary.
 
 ## Usage
 
@@ -41,8 +41,10 @@ driftcheck compare <fileA> <fileB>       # two files, any mix of formats
 driftcheck compare-dir <dirA> <dirB>     # recursive, pairs files by relative path
 ```
 
-Flags: `--json` (CI output), `--verbose`, `--show-secrets`, `--config PATH`,
-`--no-color`.
+Flags: `--json` (CI output), `--verbose`, `--show-secrets`, `--strict`
+(parse warnings fail the run), `--fail-on missing,value,type,files`,
+`--format env|json|yaml|toml` (stdin / extension-less files),
+`--config PATH`, `--no-color`.
 
 **Exit codes** — designed as a CI gate: `0` no unexpected drift, `1` drift
 found, `2` error.
@@ -54,8 +56,12 @@ Highlights:
 - **Secret redaction by default**: keys matching `API_KEY`, `*_TOKEN`,
   `*_SECRET`, `PASSWORD`, … are compared on real values but printed
   `[redacted]`, in both human and `--json` output.
-- **Ignore rules**: a `.driftcheck.yaml` lists keys expected to differ per
-  environment (`DATABASE_URL`, `features.*`) so they never page you.
+- **Keyed-list matching**: Kubernetes-style lists (`env:`, `ports:`) are
+  matched by their `name`/`key`/`id` field — inserting one element is one
+  drift, not a misaligned cascade.
+- **Ignore rules**: `.driftcheck.yaml` `ignore_values:` forgives per-
+  environment value differences (`DATABASE_URL`) while still failing if the
+  key goes missing; `ignore_files:` silences expected per-env overlay files.
 
 Full documentation: https://github.com/adamsjack711-ux/driftcheck
 

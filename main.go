@@ -21,7 +21,7 @@ import (
 	"github.com/adamsjack711-ux/driftcheck/internal/rules"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 const (
 	exitClean = 0
@@ -65,25 +65,35 @@ Usage:
   driftcheck version
 
 Supported formats: .env, .json, .yaml/.yml, .toml (mixed formats compare fine).
+Use "-" for stdin together with --format.
 
 Flags (both commands):
-  --json            machine-readable output for CI
-  --verbose         also show identical keys and ignored drift
+  --json            machine-readable output for CI (schema_version field inside)
+  --verbose         also show identical keys, ignored drift, and the rules file used
   --show-secrets    print secret values instead of [redacted]
-  --config PATH     rules file (default: .driftcheck.yaml in the working dir)
+  --strict          treat parse warnings (skipped malformed lines) as errors (exit 2)
+  --fail-on LIST    which drift fails the build: any (default), or missing,value,type,files
+  --format FMT      force format (env|json|yaml|toml) for stdin / extension-less files
+  --config PATH     rules file (default: nearest .driftcheck.yaml walking up from cwd)
   --no-color        disable ANSI colors (also disabled when not a TTY or NO_COLOR is set)
 
 Exit codes: 0 no unexpected drift · 1 drift found · 2 error (bad args, unreadable
 or unparseable file). Parse errors never abort the run; the remaining files are
 still compared and the run exits 2.
 
+Lists of maps sharing a unique "name"/"key"/"id" field are matched by that
+identity, not by position — inserting an element doesn't misalign the rest.
+
 Rules file (.driftcheck.yaml):
-  ignore:                       # key paths expected to differ per environment
-    - DATABASE_URL
+  ignore:                       # drift fully expected (value AND presence)
     - features.*                # '*' matches any characters, dots included
+  ignore_values:                # value may differ, but key must exist on both sides
+    - DATABASE_URL
+  ignore_files:                 # compare-dir: skip these relative paths entirely
+    - patches/*
   secret_patterns:              # extra regexes for secret key names
     - internal_cred
-  no_default_secrets: false     # disable built-in API_KEY/_TOKEN/_SECRET/PASSWORD patterns
+  no_default_secrets: false     # disable built-in name/value secret detection
 `)
 }
 
@@ -92,7 +102,10 @@ type cmdFlags struct {
 	verbose     bool
 	showSecrets bool
 	noColor     bool
+	strict      bool
 	config      string
+	format      string
+	failOn      string
 }
 
 func parseFlags(name string, args []string) (cmdFlags, []string, error) {
@@ -103,11 +116,48 @@ func parseFlags(name string, args []string) (cmdFlags, []string, error) {
 	fs.BoolVar(&f.verbose, "verbose", false, "show identical keys and ignored drift")
 	fs.BoolVar(&f.showSecrets, "show-secrets", false, "print secret values")
 	fs.BoolVar(&f.noColor, "no-color", false, "disable colors")
+	fs.BoolVar(&f.strict, "strict", false, "treat parse warnings (skipped lines) as errors")
 	fs.StringVar(&f.config, "config", "", "rules file path")
+	fs.StringVar(&f.format, "format", "", "force input format (env|json|yaml|toml) for stdin or extension-less files")
+	fs.StringVar(&f.failOn, "fail-on", "any", "drift categories that fail the build: any, or comma list of missing,value,type,files")
 	if err := fs.Parse(args); err != nil {
 		return f, nil, err
 	}
 	return f, fs.Args(), nil
+}
+
+// failOnSet is the parsed --fail-on selection.
+type failOnSet struct {
+	missing, value, typ, files bool
+}
+
+func parseFailOn(s string) (failOnSet, error) {
+	var f failOnSet
+	for _, tok := range strings.Split(s, ",") {
+		switch strings.TrimSpace(tok) {
+		case "any":
+			return failOnSet{missing: true, value: true, typ: true, files: true}, nil
+		case "missing":
+			f.missing = true
+		case "value":
+			f.value = true
+		case "type":
+			f.typ = true
+		case "files":
+			f.files = true
+		case "":
+		default:
+			return f, fmt.Errorf("unknown --fail-on category %q (want any, missing, value, type, files)", tok)
+		}
+	}
+	return f, nil
+}
+
+func (f failOnSet) triggered(c report.CategoryTotals) bool {
+	return (f.missing && c.Missing > 0) ||
+		(f.value && c.Value > 0) ||
+		(f.typ && c.Type > 0) ||
+		(f.files && c.Files > 0)
 }
 
 func cmdCompare(args []string, dirMode bool) int {
@@ -124,26 +174,34 @@ func cmdCompare(args []string, dirMode bool) int {
 		return exitError
 	}
 
-	cfgPath, explicit := flags.config, flags.config != ""
-	if !explicit {
-		cfgPath = rules.DefaultFileName
+	failOn, err := parseFailOn(flags.failOn)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "driftcheck: %v\n", err)
+		return exitError
 	}
-	cfg, err := rules.Load(cfgPath, explicit)
+	format, err := parse.ParseFormatFlag(flags.format)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "driftcheck: %v\n", err)
+		return exitError
+	}
+	cfg, rulesPath, err := rules.Discover(flags.config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "driftcheck: %v\n", err)
 		return exitError
 	}
 
+	src := parse.FileSource{Fallback: format}
 	var rep *report.Report
 	if dirMode {
-		rep, err = compareDirs(rest[0], rest[1], cfg)
+		rep, err = compareDirs(rest[0], rest[1], cfg, src)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "driftcheck: %v\n", err)
 			return exitError
 		}
 	} else {
-		rep = compareFiles(rest[0], rest[1], cfg)
+		rep = compareFiles(rest[0], rest[1], cfg, src)
 	}
+	rep.RulesFile = rulesPath
 
 	opts := report.Options{
 		Verbose:     flags.verbose,
@@ -162,7 +220,12 @@ func cmdCompare(args []string, dirMode bool) int {
 	switch {
 	case len(rep.Errors) > 0:
 		return exitError
-	case rep.TotalDrift() > 0:
+	case flags.strict && rep.TotalWarnings() > 0:
+		if !flags.json {
+			fmt.Fprintf(os.Stderr, "driftcheck: --strict: %d parse warning(s) treated as errors\n", rep.TotalWarnings())
+		}
+		return exitError
+	case failOn.triggered(rep.Categories()):
 		return exitDrift
 	default:
 		return exitClean
@@ -186,9 +249,8 @@ func useColor(f cmdFlags) bool {
 // compareFiles builds a single-pair report. A file that fails to load lands
 // in Errors instead of aborting, so the exit code (2) and the message both
 // reach CI.
-func compareFiles(pathA, pathB string, cfg *rules.Rules) *report.Report {
+func compareFiles(pathA, pathB string, cfg *rules.Rules, src parse.FileSource) *report.Report {
 	rep := &report.Report{}
-	src := parse.FileSource{}
 
 	treeA, warnA, errA := src.Load(pathA)
 	treeB, warnB, errB := src.Load(pathB)
@@ -220,8 +282,9 @@ var skipDirs = map[string]bool{
 
 // compareDirs walks both trees, pairs config files by relative path
 // (treating .yml and .yaml as the same name), and compares each pair.
-// Files present on only one side are reported — and counted — as drift.
-func compareDirs(dirA, dirB string, cfg *rules.Rules) (*report.Report, error) {
+// Files present on only one side are reported — and counted — as drift,
+// unless an ignore_files rule marks them as expected.
+func compareDirs(dirA, dirB string, cfg *rules.Rules, src parse.FileSource) (*report.Report, error) {
 	filesA, err := findConfigFiles(dirA)
 	if err != nil {
 		return nil, err
@@ -232,7 +295,6 @@ func compareDirs(dirA, dirB string, cfg *rules.Rules) (*report.Report, error) {
 	}
 
 	rep := &report.Report{DirA: dirA, DirB: dirB}
-	src := parse.FileSource{}
 
 	keys := map[string]struct{}{}
 	for k := range filesA {
@@ -250,6 +312,10 @@ func compareDirs(dirA, dirB string, cfg *rules.Rules) (*report.Report, error) {
 	for _, key := range sorted {
 		relA, inA := filesA[key]
 		relB, inB := filesB[key]
+		if cfg.IsFileIgnored(key) ||
+			(inA && cfg.IsFileIgnored(relA)) || (inB && cfg.IsFileIgnored(relB)) {
+			continue
+		}
 		switch {
 		case inA && !inB:
 			rep.OnlyInA = append(rep.OnlyInA, relA)
