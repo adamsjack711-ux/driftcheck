@@ -5,6 +5,8 @@ Semantic diffing of structured config files across environments. Compares
 instead of lines, so key reordering and formatting churn are invisible, and a
 silently diverged timeout or stale feature flag is not.
 
+![driftcheck demo](assets/demo.gif)
+
 ```
 $ driftcheck compare dev.env prod.env
 

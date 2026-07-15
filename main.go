@@ -21,7 +21,7 @@ import (
 	"github.com/adamsjack711-ux/driftcheck/internal/rules"
 )
 
-const version = "0.2.0"
+const version = "0.2.1"
 
 const (
 	exitClean = 0

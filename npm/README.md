@@ -6,6 +6,8 @@ Compares `.env`, JSON, YAML, and TOML files by *meaning* — key paths and typed
 values — instead of lines. Key reordering and formatting churn are invisible;
 a silently diverged timeout, missing key, or stale feature flag is not.
 
+![driftcheck demo](https://raw.githubusercontent.com/adamsjack711-ux/driftcheck/main/assets/demo.gif)
+
 ```
 $ driftcheck compare dev.env prod.env
 
