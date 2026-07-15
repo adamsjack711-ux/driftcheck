@@ -26,10 +26,11 @@ TYPE DRIFT (1)
 ## Install
 
 ```sh
-npm install -g driftcheck
+npm install -g driftcheck-cli
 ```
 
-This installs a prebuilt native binary (the CLI is written in Go). Currently
+This installs the `driftcheck` command as a prebuilt native binary (the CLI
+is written in Go). Currently
 macOS arm64 only; on other platforms build from source and point
 `DRIFTCHECK_BIN` at the binary.
 

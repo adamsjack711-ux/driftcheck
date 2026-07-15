@@ -29,7 +29,7 @@ VALUE DRIFT (2)
 ## Install
 
 ```sh
-npm install -g driftcheck        # prebuilt binary (macOS arm64)
+npm install -g driftcheck-cli    # prebuilt binary (macOS arm64), installs `driftcheck`
 ```
 
 or build from source (single static binary, no runtime dependencies):

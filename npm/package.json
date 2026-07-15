@@ -1,5 +1,5 @@
 {
-  "name": "driftcheck",
+  "name": "driftcheck-cli",
   "version": "0.1.0",
   "description": "Semantic diffing of config files (.env, JSON, YAML, TOML) across environments — typed drift detection with a CI exit-code gate.",
   "bin": {
