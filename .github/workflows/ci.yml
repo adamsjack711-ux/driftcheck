@@ -36,9 +36,9 @@ jobs:
         shell: bash
         run: |
           ./driftcheck version
-          # dev.env vs prod.env has intentional drift in this fixture (exit 1) —
-          # this just checks the binary runs end-to-end and emits JSON.
-          ./driftcheck compare examples/dev.env examples/prod.env --json > /tmp/out.json || true
+          # Flags must precede file args (Go flag.Parse). Fixture has intentional
+          # drift (exit 1) — this just checks the binary runs and emits JSON.
+          ./driftcheck compare --json examples/dev.env examples/prod.env > /tmp/out.json || true
           test -s /tmp/out.json
 
   lint:
@@ -48,6 +48,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.12.2
+          args: --timeout=5m

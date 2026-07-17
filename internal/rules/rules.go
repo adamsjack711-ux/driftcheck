@@ -58,10 +58,10 @@ var builtinSecretNameRe = regexp.MustCompile(
 // the key is called — the most common real leak is a password embedded in a
 // connection URL under an innocent name.
 var builtinSecretValueRes = []*regexp.Regexp{
-	regexp.MustCompile(`://[^/\s@:]+:[^/\s@]+@`),                          // URL userinfo with password
-	regexp.MustCompile(`\b(AKIA|ASIA)[A-Z0-9]{16}\b`),                     // AWS access key id
+	regexp.MustCompile(`://[^/\s@:]+:[^/\s@]+@`),                           // URL userinfo with password
+	regexp.MustCompile(`\b(AKIA|ASIA)[A-Z0-9]{16}\b`),                      // AWS access key id
 	regexp.MustCompile(`\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.`), // JWT
-	regexp.MustCompile(`-----BEGIN [A-Z ]*PRIVATE KEY`),                   // PEM private key
+	regexp.MustCompile(`-----BEGIN [A-Z ]*PRIVATE KEY`),                    // PEM private key
 }
 
 // Default returns the rules used when no config file exists: no ignores,

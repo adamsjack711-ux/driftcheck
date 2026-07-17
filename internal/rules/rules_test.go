@@ -101,7 +101,9 @@ func TestMissingDefaultConfigFallsBack(t *testing.T) {
 
 func TestBadPatternErrors(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "r.yaml")
-	os.WriteFile(path, []byte("secret_patterns:\n  - \"([\"\n"), 0o644)
+	if err := os.WriteFile(path, []byte("secret_patterns:\n  - \"([\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := Load(path, true); err == nil {
 		t.Error("invalid regex should error")
 	}

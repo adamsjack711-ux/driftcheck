@@ -13,10 +13,10 @@ func TestFlattenNested(t *testing.T) {
 	tree := Flatten(doc)
 
 	cases := map[string]string{
-		"a.b":          "1",
-		"a.c[0]":       "x",
-		"a.c[1].d":     "true",
-		`dotted\.key`:  "v",
+		"a.b":         "1",
+		"a.c[0]":      "x",
+		"a.c[1].d":    "true",
+		`dotted\.key`: "v",
 	}
 	for path, want := range cases {
 		v, ok := tree[path]
@@ -43,13 +43,13 @@ func TestFlattenBareScalar(t *testing.T) {
 
 func TestLastSegment(t *testing.T) {
 	cases := map[string]string{
-		"API_KEY":         "API_KEY",
-		"db.password":     "password",
-		"a.b.c":           "c",
-		"hosts[0]":        "hosts",
-		"a.list[3]":       "list",
-		`dotted\.key`:     "dotted.key",
-		`a.dotted\.key`:   "dotted.key",
+		"API_KEY":       "API_KEY",
+		"db.password":   "password",
+		"a.b.c":         "c",
+		"hosts[0]":      "hosts",
+		"a.list[3]":     "list",
+		`dotted\.key`:   "dotted.key",
+		`a.dotted\.key`: "dotted.key",
 	}
 	for path, want := range cases {
 		if got := LastSegment(path); got != want {

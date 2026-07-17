@@ -1,19 +1,34 @@
-run:
-  timeout: 5m
-
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
-    - govet
-    - staticcheck
     - errcheck
+    - govet
     - ineffassign
+    - misspell
+    - staticcheck
+    - unconvert
     - unused
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - npm
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
     - gofmt
     - goimports
-    - misspell
-    - unconvert
-
-issues:
-  exclude-dirs:
-    - npm
+  exclusions:
+    generated: lax
+    paths:
+      - npm
+      - third_party$
+      - builtin$
+      - examples$

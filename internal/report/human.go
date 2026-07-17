@@ -136,7 +136,7 @@ func (h humanPrinter) renderPair(pair FilePair) {
 func groupEntries(entries []diff.Entry) map[DriftGroupKey][]diff.Entry {
 	groups := map[DriftGroupKey][]diff.Entry{}
 	for _, e := range entries {
-		key := DriftGroupKey(e.Type)
+		key := e.Type
 		if e.Ignored && e.Type != diff.Same {
 			key = "ignored"
 		}

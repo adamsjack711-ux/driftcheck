@@ -211,16 +211,16 @@ func TestParseTOMLMalformed(t *testing.T) {
 
 func TestDetectFormat(t *testing.T) {
 	cases := map[string]Format{
-		".env":           FormatEnv,
+		".env":            FormatEnv,
 		".env.production": FormatEnv,
-		"dev.env":        FormatEnv,
-		"config.json":    FormatJSON,
-		"config.yaml":    FormatYAML,
-		"config.yml":     FormatYAML,
-		"config.toml":    FormatTOML,
-		"config.YAML":    FormatYAML,
-		"README.md":      FormatUnknown,
-		"binary":         FormatUnknown,
+		"dev.env":         FormatEnv,
+		"config.json":     FormatJSON,
+		"config.yaml":     FormatYAML,
+		"config.yml":      FormatYAML,
+		"config.toml":     FormatTOML,
+		"config.YAML":     FormatYAML,
+		"README.md":       FormatUnknown,
+		"binary":          FormatUnknown,
 	}
 	for name, want := range cases {
 		if got := DetectFormat(name); got != want {
