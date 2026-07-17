@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.2]
+### Added
+- GitHub Actions CI: lint (golangci-lint), tests, and an install-path smoke
+  test on every push and PR.
+- Automated releases: pushing a `v*` tag runs GoReleaser (GitHub release with
+  linux/darwin amd64+arm64 tarballs) and publishes `driftcheck-cli` to npm.
+- Contributor docs: CONTRIBUTING.md, issue templates, Dependabot config.
+### Changed
+- `driftcheck version` now reports the build-time stamped version (git tag via
+  GoReleaser; `dev` for local builds) instead of a hardcoded constant.
+- CI and lint fixes for Go 1.26; GitHub Actions bumped to latest majors.
+
 ## [0.2.1]
 ### Added
 - VHS-recorded demo GIF in the README (`assets/demo.tape` regenerates
@@ -50,7 +62,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Human and `--json` output; exit codes `0`/`1`/`2` designed as a CI gate.
 - npm binary-shim package.
 
-[Unreleased]: https://github.com/adamsjack711-ux/driftcheck/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/adamsjack711-ux/driftcheck/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/adamsjack711-ux/driftcheck/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/adamsjack711-ux/driftcheck/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/adamsjack711-ux/driftcheck/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/adamsjack711-ux/driftcheck/releases/tag/v0.1.0
