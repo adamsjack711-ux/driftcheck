@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./... -race -cover
+
+      - name: Build
+        run: go build -trimpath -ldflags="-s -w -X main.version=ci" -o driftcheck .
+
+      - name: Smoke test the built binary
+        shell: bash
+        run: |
+          ./driftcheck version
+          # dev.env vs prod.env has intentional drift in this fixture (exit 1) —
+          # this just checks the binary runs end-to-end and emits JSON.
+          ./driftcheck compare examples/dev.env examples/prod.env --json > /tmp/out.json || true
+          test -s /tmp/out.json
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest

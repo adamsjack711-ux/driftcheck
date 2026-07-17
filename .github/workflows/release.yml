@@ -1,0 +1,68 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stage binaries into npm/dist
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          declare -A targets=(
+            [linux_amd64]=linux-x64
+            [linux_arm64]=linux-arm64
+            [darwin_amd64]=darwin-x64
+            [darwin_arm64]=darwin-arm64
+          )
+          for os_arch in "${!targets[@]}"; do
+            npm_dir="${targets[$os_arch]}"
+            os="${os_arch%_*}"
+            arch="${os_arch#*_}"
+            tarball="dist/driftcheck_${VERSION}_${os}_${arch}.tar.gz"
+            mkdir -p "npm/dist/${npm_dir}"
+            tmp="$(mktemp -d)"
+            tar xzf "$tarball" -C "$tmp"
+            cp "$tmp/driftcheck" "npm/dist/${npm_dir}/driftcheck"
+            chmod +x "npm/dist/${npm_dir}/driftcheck"
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Set npm package version to match the tag
+        run: npm pkg set version="${GITHUB_REF_NAME#v}"
+        working-directory: npm
+
+      - name: Publish to npm
+        run: npm publish --access public
+        working-directory: npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

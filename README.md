@@ -1,5 +1,10 @@
 # driftcheck
 
+[![CI](https://github.com/adamsjack711-ux/driftcheck/actions/workflows/ci.yml/badge.svg)](https://github.com/adamsjack711-ux/driftcheck/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/driftcheck-cli.svg)](https://www.npmjs.com/package/driftcheck-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/adamsjack711-ux/driftcheck)](https://goreportcard.com/report/github.com/adamsjack711-ux/driftcheck)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Semantic diffing of structured config files across environments. Compares
 `.env`, JSON, YAML, and TOML files by *meaning* — key paths and typed values —
 instead of lines, so key reordering and formatting churn are invisible, and a

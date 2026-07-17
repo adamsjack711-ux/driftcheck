@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest an idea for driftcheck
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: >
+        Note: a web UI, auto-syncing configs, and cloud secret-manager
+        backends are explicitly out of scope for v1 (see "Not in v1" in the
+        README). If your request is in that space it's still worth opening —
+        just flag it so scope can be discussed first.

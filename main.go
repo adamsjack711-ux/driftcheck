@@ -21,7 +21,9 @@ import (
 	"github.com/adamsjack711-ux/driftcheck/internal/rules"
 )
 
-const version = "0.2.1"
+// version is overridden at build time via -ldflags "-X main.version=...".
+// GoReleaser sets this to the git tag; local `go build` falls back to "dev".
+var version = "dev"
 
 const (
 	exitClean = 0
